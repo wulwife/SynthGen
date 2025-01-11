@@ -1,6 +1,6 @@
 from synthetics_generator_class import Synthetics_generator
 
-inputs={'n_sources':100,'latmin':63.9, 'latmax':64.2, 'lonmin':-21.7, 'lonmax':-20.9, 'depmin':1000, 'depmax':15000, 
+inputs={'n_sources':2500,'latmin':63.9, 'latmax':64.2, 'lonmin':-21.7, 'lonmax':-20.9, 'depmin':1000, 'depmax':15000, 
 'tormin':"2019-01-01", 'tormax':"2019-01-07", 'magmin':0.0, 'magmax':2.0}
 
 inv_filename = "COSEISMIQ_networks_inventory.xml"
