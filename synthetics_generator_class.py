@@ -17,9 +17,12 @@ class Synthetics_generator:
         events=catalogue.gen_catalogue(catname, event_type, True, seed)
         self.events=events
 
-    def generate_waveforms(self, events, time_window, buffer, resampling_freq, highcut_freq, source_type='dc'):
+    def generate_waveforms(self, events, time_window, buffer, resampling_freq, highcut_freq, source_type='dc', parallel=False):
         waveforms=Synthetic_waveforms(self.data_dir, self.inv_filename, self.gf_store_dir, self.gf_store, self.data_id)
-        waveforms.generate_waveforms(events, time_window, buffer, resampling_freq, highcut_freq, source_type)
+        if parallel:
+            waveforms.generate_waveforms_parallel(events, time_window, buffer, resampling_freq, highcut_freq, source_type)
+        else:
+            waveforms.generate_waveforms(events, time_window, buffer, resampling_freq, highcut_freq, source_type)
         self.clean_dataset(waveforms.waveform_dir)
 
     def clean_datatet(self, root_dir):
@@ -57,13 +60,14 @@ if __name__ == "__main__":
     highcut_freq=2
     event_type='noise'
     source_type='dc'
-    data_id='noise'
+    data_id='noise_parallel'
+    parallel=True
 
     inv_filename = "COSEISMIQ_networks_inventory.xml"
     data_dir='/home/francesco/hengill'
     catname='iceland.txt'
     dataset=Synthetics_generator(data_dir, inv_filename, gfstore_dir, gf_store, data_id)
     dataset.generate_catalogue(inputs, catname, event_type)
-    dataset.generate_waveforms(dataset.events, time_window, buffer, resampling_freq, highcut_freq, source_type)
+    dataset.generate_waveforms(dataset.events, time_window, buffer, resampling_freq, highcut_freq, source_type, parallel)
 
 

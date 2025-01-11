@@ -189,6 +189,32 @@ class Synthetic_waveforms:
             os.mkdir(event_dir)
         self.__waveform_gen(tor, time_window, source, noise, event_dir)
 
+    def _process_event(self, args):
+        evid, event, time_window, buffer, resampling_freq, highcut_freq, source_type = args
+        event_dir = os.path.join(self.waveform_dir, evid)
+        if not os.path.isdir(event_dir):
+            os.mkdir(event_dir)
+        tor = event[0]
+        source = self.__gen_source(event, source_type)
+        noise = self._model_noise(evid, time_window, buffer, resampling_freq, highcut_freq)
+        self.__waveform_gen(tor, time_window, source, noise, event_dir)
+
+    def generate_waveforms_parallel(self, events, time_window, buffer, resampling_freq, highcut_freq, source_type='dc'):
+        from multiprocessing import Pool
+        self.__get_sensitivity(events)
+        
+        # Prepare arguments for parallel processing
+        args = [
+            (evid, events[evid], time_window, buffer, resampling_freq, highcut_freq, source_type)
+            for evid in events.keys()
+        ]
+        
+        # Use multiprocessing Pool for parallelism
+        with Pool(processes=os.cpu_count()) as pool:
+            pool.map(self._process_event, args)
+
+
+
 if __name__ == "__main__":
 
     inv_filename = "COSEISMIQ_networks_inventory.xml"
