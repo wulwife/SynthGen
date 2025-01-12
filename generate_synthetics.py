@@ -15,10 +15,11 @@ highcut_freq=2
 event_type='noise'
 source_type='dc'
 data_id='noise'
+parallel=False
 
 inv_filename = "COSEISMIQ_networks_inventory.xml"
 data_dir='/home/francesco/hengill'
 catname='iceland.txt'
 dataset=Synthetics_generator(data_dir, inv_filename, gfstore_dir, gf_store, data_id)
 dataset.generate_catalogue(inputs, catname, event_type)
-dataset.generate_waveforms(dataset.events, time_window, buffer, resampling_freq, highcut_freq, source_type)
+dataset.generate_waveforms(dataset.events, time_window, buffer, resampling_freq, highcut_freq, source_type, parallel)

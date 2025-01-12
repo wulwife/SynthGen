@@ -135,7 +135,7 @@ class Synthetic_waveforms:
         client=Client(sds_root, sds_type='D', format='MSEED', fileborder_seconds=30, fileborder_samples=5000)
         real_noise={}
         tini=UTCDateTime(evid)
-        st = client.get_waveforms("[2O][CN]", "*", "*", "[BHE]H[ENZ]", tini-buffer, tini+time_window+buffer, sds_type='D')
+        st = client.get_waveforms("[2O][CN]", "*", "*", "[BHE]H[ENZ]", tini-buffer, tini+time_window+buffer, sds_type='D') #da cambiare
         st.detrend('demean')
         st.merge(method=0,fill_value=0)
         st.resample(resampling_freq, no_filter=True)
