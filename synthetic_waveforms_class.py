@@ -35,16 +35,34 @@ class Synthetic_waveforms:
         self.inventory = read_inventory(self.inventory_path)
 
 
-    def __waveform_gen(self, tor, time_window, source, event_dir):
+    def __waveform_gen(self, tor, time_window, source, event_dir, noise):
         engine = LocalEngine(store_superdirs=[self.gf_store_dir+'/'])
         for net in self.inventory:
             for sta in net:
                 for cha in sta:
-                    target = Target(quantity='velocity',tmin = tor, tmax = tor + time_window,lat=float(sta.latitude),lon=float(sta.longitude),store_id=self.gf_store,codes=(net.code, sta.code, cha.location_code, cha.code ))
-                    response = engine.process(source, target)
-                    synthetic_trace = response.pyrocko_traces()
-                    channel_id = os.path.join(event_dir, ".".join([str(net.code),str(sta.code),str(cha.location_code),str(cha.code)]))
-                    io.save(synthetic_trace, channel_id + ".mseed")
+                    try:
+                        target = Target(quantity='velocity',tmin = tor, tmax = tor + time_window,lat=float(sta.latitude),lon=float(sta.longitude),store_id=self.gf_store,codes=(net.code, sta.code, cha.location_code, cha.code ))
+                        response = engine.process(source, target)
+                        synthetic_trace = response.pyrocko_traces()
+                        channel_id = os.path.join(event_dir, ".".join([str(net.code),str(sta.code),str(cha.location_code),str(cha.code)]))
+                        if noise:
+                            noise_waveform=noise[str(net.code)+'_'+str(sta.code)+'_'+str(cha.code)]
+                            event_waveform=synthetic_trace[0].ydata
+                            synthetic_trace[0].ydata=self.__add_noise(event_waveform, noise_waveform)
+                        io.save(synthetic_trace, channel_id + ".mseed")
+                    except:
+                        print(str(sta) +' skipped!')
+
+    def __add_noise(self, event_waveform, noise_waveform):
+        n_synth=num.size(event_waveform)
+        n_noise=num.size(noise_waveform)
+        if n_synth > n_noise:
+            event_waveform[:n_noise]= event_waveform[:n_noise] + noise_waveform
+        elif n_synth < n_noise:
+            event_waveform = event_waveform + noise_waveform[:n_synth]
+        else:
+            event_waveform = event_waveform + noise_waveform
+        return event_waveform
     
     def __uniform_mt_dist(self, moment_norm):
         # parametrization of uniformely distributed moment tensor of norm 1
@@ -97,7 +115,7 @@ class Synthetic_waveforms:
         Mw=(2/3)*(num.log10(M0*Nm2dycm))-10.7
         return Mw
 
-    def generate_waveforms(self, otime, lat, lon, dep, mag, time_window, source_type):
+    def generate_waveforms(self, otime, lat, lon, dep, mag, time_window, source_type, noise=[]):
         id=UTCDateTime(otime)
         tor=id.timestamp
         evid = ((str(id).split(".")[0]).replace(':','')).replace('-','')
@@ -106,16 +124,16 @@ class Synthetic_waveforms:
         event_dir = os.path.join(self.waveform_dir, evid)
         if not os.path.isdir(event_dir):
             os.mkdir(event_dir)
-        self.__waveform_gen(tor, time_window, source, event_dir)
+        self.__waveform_gen(tor, time_window, source, event_dir, noise)
 
 
 
 if __name__ == "__main__":
 
-    inv_filename = "COSEISMIQ_networks_inventory.xml"
-    data_dir='/home/francesco/hengill'
-    gfstore_dir='/home/francesco/hengill/GF_Stores'
-    gf_store='iceland'
+    #inv_filename = "COSEISMIQ_networks_inventory.xml"
+    #data_dir='/home/francesco/hengill'
+    #gfstore_dir='/home/francesco/hengill/GF_Stores'
+    #gf_store='iceland'
     data_dir='/home/francesco/Jidong'
     inv_filename = 'JD*xml'
     gfstore_dir='/home/francesco/Jidong/GF_Stores'

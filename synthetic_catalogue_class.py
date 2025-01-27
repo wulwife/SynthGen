@@ -35,8 +35,8 @@ class Synthetic_catalogue:
         with open(self.data_dir+'/'+filename,'w') as f:
             f.write('OriginTime Latitude(deg) Longitude(deg) Depth(km) Magnitude \n')
             for event_id in sorted(self.events.keys()):
-                tor, lat, lon, dep, mag, evtype=self.events[event_id]
-                evline=' %6.4f %7.4f %4.2f %3.2f %s\n' %(lat,lon,dep/1000,mag, evtype)
+                tor, lat, lon, dep, mag=self.events[event_id]
+                evline=' %6.4f %7.4f %4.2f %3.2f\n' %(lat,lon,dep/1000,mag)
                 f.write(event_id+evline)
 
     def __gen_events(self):

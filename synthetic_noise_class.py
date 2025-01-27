@@ -46,14 +46,14 @@ class Synthetic_noise:
         else:
             sensitivity= self.avg_sens
         return sensitivity
-
-    def __extract_noise(self, tini_glob, tend_glob, noise_win, resampling_freq, highcut_freq, network):
+    
+    def __load_noise_from_sds(self, tini_glob, tend_glob, noise_win, resampling_freq, highcut_freq, network):
         from obspy.clients.filesystem.sds import Client
         client=Client(self.sds_root, sds_type='D', format='MSEED', fileborder_seconds=30, fileborder_samples=5000)
-        real_noise={}
         tiniglob=UTCDateTime(tini_glob)
         tendglob=UTCDateTime(tend_glob)
-        st = client.get_waveforms(network, "*", "*", "[BHE]H[ENZ]", tiniglob, tendglob, sds_type='D') #da cambiare
+        st = client.get_waveforms(network, "*", "*", "[BHE]H[ENZ]", tiniglob, tendglob, sds_type='D')
+        real_noise={}
         for tr in st:
             tini=tr.stats.starttime
             tr.trim(tini,tini+3*noise_win)
@@ -64,9 +64,9 @@ class Synthetic_noise:
             trid= tr.stats.network+'_'+tr.stats.station+'_'+tr.stats.channel
             invcode=tr.stats.network+'.'+tr.stats.station+'.'+tr.stats.location+'.'+tr.stats.channel
             real_noise[trid]=tr.data/self.__get_sensitivity(invcode)
-            tr.stats.starttime=tiniglob
-        self.noise_stream=st
+            tr.stats.starttime=UTCDateTime(tiniglob)
         self.real_noise=real_noise
+        self.noise_stream=st
     
     def __model_noise(self):
         noise={}
@@ -93,12 +93,15 @@ class Synthetic_noise:
             tr.data=noise[trid]
             tr.write(self.noise_dir+'/'+starttime+'/'+trid+'.mseed', format='MSEED')
     
-    def gen_noise_waveforms(self, starttime, endtime, time_window, resampling_freq, highcut_freq, network):
-        if not self.real_noise:
-            self.__extract_noise(starttime, endtime, time_window, resampling_freq, highcut_freq, network)
+    def extract_noise(self, starttime, endtime, time_window, resampling_freq, highcut_freq, network):
+        self.__load_noise_from_sds(starttime, endtime, time_window, resampling_freq, highcut_freq, network)
+
+    def gen_noise_waveforms(self, otime, return_object=False):
         noise=self.__model_noise()
-        self.__write_noise_waveform(noise, starttime)
-        return noise
+        if return_object:
+            return noise
+        else:
+            self.__write_noise_waveform(noise, otime)
 
 if __name__ == "__main__":
 
@@ -118,7 +121,7 @@ if __name__ == "__main__":
     network='JD'
 
     jdnoise=Synthetic_noise(data_dir, inv_folder, inv_filename, noise_id, sds_root)
-    jdnoise.gen_noise_waveforms(starttime, endtime, time_window, resampling_freq, highcut_freq, network)
-    starttime='20241020T000500'
-    jdnoise.gen_noise_waveforms(starttime, endtime, time_window, resampling_freq, highcut_freq, network)
+    jdnoise.extract_noise(starttime, endtime, time_window, resampling_freq, highcut_freq, network)
+    starttime='20241020T001000'
+    jdnoise.gen_noise_waveforms(starttime)
 
