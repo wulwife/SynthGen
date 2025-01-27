@@ -2,6 +2,7 @@ import os
 from collections import Counter
 from synthetic_catalogue_class import Synthetic_catalogue
 from synthetic_waveforms_class import Synthetic_waveforms
+from synthetic_noise_class import Synthetic_noise
 
 class Synthetics_generator:
 
@@ -25,7 +26,37 @@ class Synthetics_generator:
             waveforms.generate_waveforms(events, time_window, buffer, resampling_freq, highcut_freq, source_type)
         self.clean_dataset(waveforms.waveform_dir)
 
-    def clean_datatet(self, root_dir):
+    def __waveform_gen(self, tor, time_window, source, noise, event_dir, noise_contaminated=True):
+        engine = LocalEngine(store_superdirs=[self.gf_store_dir+'/'])
+        for net in self.inventory:
+            for sta in net:
+                for cha in sta:
+                    if str(net.code)+'_'+str(sta.code)+'_'+str(cha.code) in noise.keys():
+                        target = Target(quantity='velocity',tmin = tor, tmax = tor + time_window,lat=float(sta.latitude),lon=float(sta.longitude),store_id=self.gf_store,codes=(net.code, sta.code, cha.location_code, cha.code ))
+                        response = engine.process(source, target)
+                        synthetic_trace = response.pyrocko_traces()
+                        event_waveform=synthetic_trace[0].ydata
+                        noise_waveform=noise[str(net.code)+'_'+str(sta.code)+'_'+str(cha.code)]
+                        channel_id = os.path.join(event_dir, ".".join([str(net.code),str(sta.code),str(cha.location_code),str(cha.code)]))
+                        if noise_contaminated:
+                            synthetic_trace[0].ydata=self.__add_noise(event_waveform, noise_waveform)
+                        io.save(synthetic_trace, channel_id + ".mseed")
+
+    def __add_noise(self, event_waveform, noise_waveform):
+        n_synth=num.size(event_waveform)
+        n_noise=num.size(noise_waveform)
+        if n_synth > n_noise:
+            event_waveform[:n_noise]= event_waveform[:n_noise] + noise_waveform
+        elif n_synth < n_noise:
+            event_waveform = event_waveform + noise_waveform[:n_synth]
+        else:
+            event_waveform = event_waveform + noise_waveform
+        return event_waveform
+
+    
+    
+
+    def clean_dataset(self, root_dir):
         for foldername, _, filenames in os.walk(root_dir):
             station_counts = Counter()
             file_station_map = {}

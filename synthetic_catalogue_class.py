@@ -39,15 +39,11 @@ class Synthetic_catalogue:
                 evline=' %6.4f %7.4f %4.2f %3.2f %s\n' %(lat,lon,dep/1000,mag, evtype)
                 f.write(event_id+evline)
 
-    def __gen_events(self, source_type):
+    def __gen_events(self):
         id, tor = self.__gen_evtime()
         lat, lon, dep =self.__gen_evcoords()
         mag=self.__gen_evmag()
-        if source_type=='random':
-            evtype=self.__gen_evtype()
-        else:
-            evtype=source_type
-        return id, tor, lat, lon, dep, mag, evtype
+        return id, tor, lat, lon, dep, mag
 
     def __gen_evtime(self):
         tormin=UTCDateTime(self.inputs['tormin'])
@@ -66,20 +62,15 @@ class Synthetic_catalogue:
         mag = self.inputs['magmin'] + (self.inputs['magmax']-self.inputs['magmin'])*num.random.rand()
         return mag
     
-    def __gen_evtype(self):
-        types=['noise', 'event']
-        evtype = num.random.choice(types)
-        return evtype
-    
-    def gen_catalogue(self, catname, source_type='random', return_object='False', seed=None):
+    def gen_catalogue(self, catname, return_object='False', seed=None):
         ''' source type must be : "random", "event" '''
         n_sources=self.inputs['n_sources']
         events={}
 
         for i in range(n_sources):
-            id, tor, lat, lon, dep, mag, evtype=self.__gen_events(source_type)
+            id, tor, lat, lon, dep, mag=self.__gen_events()
             event_id = ((str(id).split(".")[0]).replace(':','')).replace('-','')
-            events[event_id]=[tor, lat, lon, dep, mag, evtype]
+            events[event_id]=[tor, lat, lon, dep, mag]
         self.events=events
         self._write_catalogue(catname)
 
@@ -97,5 +88,5 @@ if __name__ == "__main__":
     data_dir='/home/francesco/hengill'
     catname='iceland.txt'
     dataset=Synthetic_catalogue(data_dir, inputs, input_type='dict')
-    dataset.gen_catalogue(catname, source_type='random', seed=11)
+    dataset.gen_catalogue(catname, seed=11)
 
