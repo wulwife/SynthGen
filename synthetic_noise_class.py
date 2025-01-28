@@ -79,10 +79,11 @@ class Synthetic_noise:
                 model_noise=num.fft.irfft(ftrace)
             except:
                 model_noise=num.zeros(num.size(trace))
+            model_noise=num.array(model_noise, dtype=num.float32)
             noise[trid]=model_noise
         return noise
-    
-    def __write_noise_waveform(self, noise, starttime):
+
+    def __get_noise_stream(self, noise, starttime, wobject=True):
         tini=UTCDateTime(starttime)
         if not os.path.isdir(self.noise_dir+'/'+starttime):
             os.mkdir(self.noise_dir+'/'+starttime)
@@ -91,17 +92,33 @@ class Synthetic_noise:
             tr.stats.starttime=tini
             trid= tr.stats.network+'_'+tr.stats.station+'_'+tr.stats.channel
             tr.data=noise[trid]
-            tr.write(self.noise_dir+'/'+starttime+'/'+trid+'.mseed', format='MSEED')
+        if wobject:
+            st.write(self.noise_dir+'/'+starttime+'/'+trid+'.mseed', format='MSEED')
+        else:
+            return st
     
     def extract_noise(self, starttime, endtime, time_window, resampling_freq, highcut_freq, network):
         self.__load_noise_from_sds(starttime, endtime, time_window, resampling_freq, highcut_freq, network)
+        self.time_window=time_window
 
-    def gen_noise_waveforms(self, otime, return_object=False):
+    def gen_noise_waveforms(self, otime, wobject=True):
         noise=self.__model_noise()
-        if return_object:
-            return noise
-        else:
-            self.__write_noise_waveform(noise, otime)
+        self.__get_noise_stream(noise, otime, wobject)
+        return noise
+    
+    def gen_cont_noise_waveforms(self, itime, etime):
+        from obspy import Stream 
+        st=Stream()
+        starttime=UTCDateTime(itime)
+        endtime=UTCDateTime(etime)
+        ntimes=int(((endtime-starttime)/self.time_window))
+        for i in range(ntimes):
+            newtime=(starttime+(i*self.time_window)-1).strftime("%Y%m%dT%H%M%S")
+            noise=self.__model_noise()
+            st=st.extend(self.__get_noise_stream(noise, newtime, False))
+        st.merge(method=3)
+        self.noise_stream=st
+        st.write(self.noise_dir+'/'+itime+'noise.mseed')
 
 if __name__ == "__main__":
 
@@ -123,5 +140,8 @@ if __name__ == "__main__":
     jdnoise=Synthetic_noise(data_dir, inv_folder, inv_filename, noise_id, sds_root)
     jdnoise.extract_noise(starttime, endtime, time_window, resampling_freq, highcut_freq, network)
     starttime='20241020T001000'
-    jdnoise.gen_noise_waveforms(starttime)
+    #jdnoise.gen_noise_waveforms(starttime)
+    itime='20241001T000100'
+    etime='20241001T000500'
+    jdnoise.gen_cont_noise_waveforms(itime, etime)
 
