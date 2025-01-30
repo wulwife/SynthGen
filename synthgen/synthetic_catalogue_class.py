@@ -1,6 +1,6 @@
-import os
 from obspy.core import UTCDateTime
 import numpy as num
+
 
 class Synthetic_catalogue:
 
@@ -80,6 +80,7 @@ class Synthetic_catalogue:
         if return_object:
             return events
 
+
 if __name__ == "__main__":
     inputs={'n_sources':100,'latmin':63.9, 'latmax':64.2, 'lonmin':-21.7, 'lonmax':-20.9, 'depmin':1000, 'depmax':15000, 
             'tormin':"2019-01-01", 'tormax':"2019-01-07", 'magmin':0.0, 'magmax':2.0}
@@ -89,4 +90,3 @@ if __name__ == "__main__":
     catname='iceland.txt'
     dataset=Synthetic_catalogue(data_dir, inputs, input_type='dict')
     dataset.gen_catalogue(catname, seed=11)
-

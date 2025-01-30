@@ -1,6 +1,7 @@
 import os
 import numpy as num
-from obspy.core import read, UTCDateTime
+from obspy.core import UTCDateTime
+
 
 class Synthetic_noise:
 
@@ -119,6 +120,7 @@ class Synthetic_noise:
         st.merge(method=3)
         self.noise_stream=st
         st.write(self.noise_dir+'/'+itime+'noise.mseed')
+
 
 if __name__ == "__main__":
 

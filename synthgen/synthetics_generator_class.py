@@ -1,8 +1,9 @@
 import os
 from collections import Counter
-from synthetic_catalogue_class import Synthetic_catalogue
-from synthetic_waveforms_class import Synthetic_waveforms
-from synthetic_noise_class import Synthetic_noise
+from synthgen.synthetic_catalogue_class import Synthetic_catalogue
+from synthgen.synthetic_waveforms_class import Synthetic_waveforms
+from synthgen.synthetic_noise_class import Synthetic_noise
+
 
 class Synthetics_generator:
 
@@ -66,7 +67,6 @@ if __name__ == "__main__":
     gf_store='iceland'
     catname='iceland.txt'
 
-
     data_dir='/home/francesco/Jidong'
     inv_filename = 'JD*xml'
     gfstore_dir='/home/francesco/Jidong/GF_Stores'
@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     network='JD'
 
-    dataset=Synthetics_generator(data_dir, inv_folder, inv_filename, gfstore_dir, gf_store, data_id, noise_id, sds_root)
+    dataset = Synthetics_generator(data_dir, inv_folder, inv_filename, gfstore_dir, gf_store, data_id, noise_id, sds_root)
     dataset.generate_catalogue(inputs, catname)
     dataset.generate_noise(starttime, endtime, time_window, resampling_freq, highcut_freq)
     dataset.generate_waveforms(time_window, source_type)

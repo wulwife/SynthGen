@@ -3,7 +3,6 @@ import os
 from obspy.core import UTCDateTime
 
 from pyrocko.gf import MTSource, DCSource, LocalEngine, Target
-from pyrocko.trace import Trace
 from pyrocko import io
 
 import numpy as num
@@ -16,7 +15,7 @@ class Synthetic_waveforms:
         self._read_gf(gf_store_dir,gf_store)
         self.waveform_dir = os.path.join(self.data_dir, self.gf_store+'_'+data_id)
         if not os.path.isdir(self.waveform_dir):
-                os.mkdir(self.waveform_dir)
+            os.mkdir(self.waveform_dir)
 
     def _read_gf(self,gf_store_dir,gf_store):
         self.gf_store_path = os.path.join(gf_store_dir,gf_store)
@@ -100,7 +99,7 @@ class Synthetic_waveforms:
         return sk, dp, rk
 
     def __dc_source(self, lat, lon, dep, tor, mag):
-        sk,dp,rk=self.__uniform_dc_dist()
+        sk, dp, rk=self.__uniform_dc_dist()
         source=DCSource(lat=lat,lon=lon,depth=dep,strike=sk, dip=dp, rake=rk, magnitude=mag, time=tor)
         return source
     

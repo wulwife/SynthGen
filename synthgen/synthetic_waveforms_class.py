@@ -3,7 +3,6 @@ import os
 from obspy.core import UTCDateTime
 
 from pyrocko.gf import MTSource, DCSource, LocalEngine, Target
-from pyrocko.trace import Trace
 from pyrocko import io
 
 import numpy as num
@@ -33,7 +32,6 @@ class Synthetic_waveforms:
         from obspy import read_inventory
         self.inventory_path = os.path.join(self.inv_dir, inv_filename)
         self.inventory = read_inventory(self.inventory_path)
-
 
     def __waveform_gen(self, tor, time_window, source, event_dir, noise):
         engine = LocalEngine(store_superdirs=[self.gf_store_dir+'/'])
@@ -82,8 +80,8 @@ class Synthetic_waveforms:
         return sk, dp, rk
 
     def __dc_source(self, lat, lon, dep, tor, mag):
-        sk,dp,rk=self.__uniform_dc_dist()
-        source=DCSource(lat=lat,lon=lon,depth=dep,strike=sk, dip=dp, rake=rk, magnitude=mag, time=tor)
+        sk, dp, rk=self.__uniform_dc_dist()
+        source = DCSource(lat=lat,lon=lon,depth=dep,strike=sk, dip=dp, rake=rk, magnitude=mag, time=tor)
         return source
     
     def __mt_source(self, lat, lon, dep, tor, moment_norm):
@@ -93,7 +91,7 @@ class Synthetic_waveforms:
 
     def __gen_source(self, event, source_type):
         tor, lat, lon, dep, mag=event
-        if  source_type=='dc':
+        if source_type=='dc':
             source=self.__dc_source(lat, lon, dep, tor, mag)
         elif source_type=='mt':
             moment_norm=self.__mag2mo(mag)
