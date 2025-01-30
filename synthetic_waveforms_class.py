@@ -18,6 +18,7 @@ class Synthetic_waveforms:
         self.waveform_dir = os.path.join(data_dir, self.gf_store+'_'+data_id)
         if not os.path.isdir(self.waveform_dir):
             os.mkdir(self.waveform_dir)
+        self.traces={}
 
     def _read_gf(self,gf_store_dir,gf_store):
         self.gf_store_path = os.path.join(gf_store_dir,gf_store)
@@ -34,9 +35,9 @@ class Synthetic_waveforms:
         self.inventory_path = os.path.join(self.inv_dir, inv_filename)
         self.inventory = read_inventory(self.inventory_path)
 
-
-    def __waveform_gen(self, tor, time_window, source, event_dir, noise):
+    def __waveform_gen(self, evid, tor, time_window, source, event_dir, noise):
         engine = LocalEngine(store_superdirs=[self.gf_store_dir+'/'])
+        self.traces[evid]={}
         for net in self.inventory:
             for sta in net:
                 for cha in sta:
@@ -49,6 +50,7 @@ class Synthetic_waveforms:
                             noise_waveform=noise[str(net.code)+'_'+str(sta.code)+'_'+str(cha.code)]
                             event_waveform=synthetic_trace[0].ydata
                             synthetic_trace[0].ydata=self.__add_noise(event_waveform, noise_waveform)
+                        self.traces[evid][str(net.code)+'_'+str(sta.code)+'_'+str(cha.code)]=synthetic_trace[0].ydata
                         io.save(synthetic_trace, channel_id + ".mseed")
                     except:
                         print(str(sta) +' skipped!')
@@ -124,7 +126,7 @@ class Synthetic_waveforms:
         event_dir = os.path.join(self.waveform_dir, evid)
         if not os.path.isdir(event_dir):
             os.mkdir(event_dir)
-        self.__waveform_gen(tor, time_window, source, event_dir, noise)
+        self.__waveform_gen(evid, tor, time_window, source, event_dir, noise)
 
 
 

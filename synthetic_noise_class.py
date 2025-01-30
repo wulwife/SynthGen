@@ -65,6 +65,7 @@ class Synthetic_noise:
             invcode=tr.stats.network+'.'+tr.stats.station+'.'+tr.stats.location+'.'+tr.stats.channel
             real_noise[trid]=tr.data/self.__get_sensitivity(invcode)
             tr.stats.starttime=UTCDateTime(tiniglob)
+            tr.data=real_noise[trid]
         self.real_noise=real_noise
         self.noise_stream=st
     
@@ -79,20 +80,20 @@ class Synthetic_noise:
                 model_noise=num.fft.irfft(ftrace)
             except:
                 model_noise=num.zeros(num.size(trace))
-            model_noise=num.array(model_noise, dtype=num.float32)
+            model_noise=num.array(model_noise)
             noise[trid]=model_noise
         return noise
 
     def __get_noise_stream(self, noise, starttime, wobject=True):
         tini=UTCDateTime(starttime)
-        if not os.path.isdir(self.noise_dir+'/'+starttime):
-            os.mkdir(self.noise_dir+'/'+starttime)
         st=self.noise_stream
         for tr in st:
             tr.stats.starttime=tini
             trid= tr.stats.network+'_'+tr.stats.station+'_'+tr.stats.channel
-            tr.data=noise[trid]
-        if wobject:
+            if trid in noise:
+                tr.data=noise[trid]
+        if (not os.path.isdir(self.noise_dir+'/'+starttime)) and wobject:
+            os.mkdir(self.noise_dir+'/'+starttime)
             st.write(self.noise_dir+'/'+starttime+'/'+trid+'.mseed', format='MSEED')
         else:
             return st
@@ -105,20 +106,23 @@ class Synthetic_noise:
         noise=self.__model_noise()
         self.__get_noise_stream(noise, otime, wobject)
         return noise
-    
+
     def gen_cont_noise_waveforms(self, itime, etime):
-        from obspy import Stream 
-        st=Stream()
-        starttime=UTCDateTime(itime)
-        endtime=UTCDateTime(etime)
-        ntimes=int(((endtime-starttime)/self.time_window))
-        for i in range(ntimes):
-            newtime=(starttime+(i*self.time_window)-1).strftime("%Y%m%dT%H%M%S")
-            noise=self.__model_noise()
-            st=st.extend(self.__get_noise_stream(noise, newtime, False))
-        st.merge(method=3)
-        self.noise_stream=st
-        st.write(self.noise_dir+'/'+itime+'noise.mseed')
+        starttime = UTCDateTime(itime)
+        endtime = UTCDateTime(etime)
+        ntimes = int((endtime - starttime) / self.time_window)
+        noise = self.__model_noise()
+        for _ in range(ntimes):
+            noise = self.__model_noise()
+            for tr in self.noise_stream:
+                trid = f"{tr.stats.network}_{tr.stats.station}_{tr.stats.channel}"
+                if trid in noise:
+                    tr.data = num.append(tr.data, noise[trid])  # Corrected assignment
+    
+        self.noise_stream.merge(method=1)  # Specify merge strategy
+    
+        filename = f"{self.noise_dir}/{starttime.strftime('%Y%m%dT%H%M%S')}_noise.mseed"
+        self.noise_stream.write(filename, format="MSEED")
 
 if __name__ == "__main__":
 
@@ -131,7 +135,7 @@ if __name__ == "__main__":
     starttime='20241020T000100'
     endtime='20241130T010000'
 
-    time_window=60
+    time_window=20
     resampling_freq=50
 
     highcut_freq=1
@@ -142,6 +146,6 @@ if __name__ == "__main__":
     starttime='20241020T001000'
     #jdnoise.gen_noise_waveforms(starttime)
     itime='20241001T000100'
-    etime='20241001T000500'
+    etime='20241001T000200'
     jdnoise.gen_cont_noise_waveforms(itime, etime)
 

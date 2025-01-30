@@ -29,14 +29,76 @@ class Synthetics_generator:
             noise[otime]=noisew.gen_noise_waveforms(otime, True)
         self.noise=noise
 
-    def generate_waveforms(self, time_window, source_type='dc'):
+    def generate_event_waveforms(self, time_window, source_type='dc'):
         waveforms=Synthetic_waveforms(data_dir, self.inv_folder, self.inv_filename, self.gf_store_dir, self.gf_store, self.data_id)
         for otime in self.events.keys():
             _, lat, lon, dep, mag=self.events[otime]
             waveforms.generate_waveforms(otime, lat, lon, dep, mag, time_window, source_type, self.noise[otime])
-        self.clean_dataset(waveforms.waveform_dir)
+        self.__clean_dataset(waveforms.waveform_dir)
 
-    def clean_dataset(self, root_dir):
+    def generate_continuous_waveforms(self, starttime, endtime, starttime_noise, endtime_noise, time_window, resampling_freq, highcut_freq, data_if):
+        noisew=Synthetic_noise(self.data_dir, self.inv_folder, self.inv_filename, self.noise_id, self.sds_root)
+        waveforms=Synthetic_waveforms(data_dir, self.inv_folder, self.inv_filename, self.gf_store_dir, self.gf_store, self.data_id)
+        noisew.extract_noise(starttime, endtime, time_window, resampling_freq, highcut_freq, network)
+        noisew.gen_cont_noise_waveforms(starttime_noise, endtime_noise)
+        for otime in self.events.keys():
+            _, lat, lon, dep, mag=self.events[otime]
+            waveforms.generate_waveforms(otime, lat, lon, dep, mag, time_window, source_type='dc')
+        self.__add_waveform_to_noise_stream(waveforms.traces,noisew.noise_stream,data_id)
+        self.__clean_dataset(waveforms.waveform_dir)
+
+    def __add_waveform_to_noise_stream_old(self,traces,noise_stream,data_id):
+        from obspy import UTCDateTime
+        import numpy as num
+        event_dir = os.path.join(self.data_dir,data_id)
+        if not os.path.isdir(event_dir):
+            os.mkdir(event_dir)
+        for evid in traces.keys():
+            otime=UTCDateTime(evid)
+            for trn in noise_stream:
+                print(trn.stats.starttime)
+                itn=int((num.abs(otime-trn.stats.starttime))/trn.stats.delta)
+                code=trn.stats.network+'_'+trn.stats.station+'_'+trn.stats.channel
+                if code in traces[evid].keys():
+                    event_waveform=traces[evid][trn.stats.network+'_'+trn.stats.station+'_'+trn.stats.channel]
+                    ns=num.size(event_waveform)
+                    trn.data[itn:itn+ns]=trn.data[itn:itn+ns]+event_waveform
+        noise_stream.write(event_dir+'/'+data_id+'.mseed', format='MSEED')
+    
+    def __add_waveform_to_noise_stream(self, traces, noise_stream, data_id):
+        from obspy import UTCDateTime
+        import numpy as num
+        event_dir = os.path.join(self.data_dir, data_id)
+        if not os.path.isdir(event_dir):
+            os.mkdir(event_dir)
+
+        for evid in traces.keys():
+            otime = UTCDateTime(evid)
+        
+            for trn in noise_stream:
+                # Calculate time index for the waveform insertion
+                itn = int((num.abs(otime - trn.stats.starttime)) / trn.stats.delta)
+    
+                # Build the waveform code to match with the event data
+                code = f"{trn.stats.network}_{trn.stats.station}_{trn.stats.channel}"
+            
+                if code in traces[evid].keys():
+                    # Get the event waveform for the current trace
+                    event_waveform = traces[evid][code]
+                    ns = num.size(event_waveform)
+                
+                    # Check if the index and array length allow safe modification
+                    if itn + ns <= len(trn.data):
+                        trn.data[itn:itn + ns] += event_waveform
+                    else:
+                        print(f"Warning: The waveform exceeds available data length in trace {trn.id}")
+            
+        # Write the modified noise stream to a file
+        noise_stream.write(os.path.join(event_dir, f"{data_id}.mseed"), format='MSEED')
+    
+
+
+    def __clean_dataset(self, root_dir):
         for foldername, _, filenames in os.walk(root_dir):
             station_counts = Counter()
             file_station_map = {}
@@ -57,8 +119,8 @@ class Synthetics_generator:
 
 
 if __name__ == "__main__":
-    inputs={'n_sources':10,'latmin':39.1, 'latmax':39.2, 'lonmin':118.1, 'lonmax':118.2, 'depmin':1000, 'depmax':5000, 
-    'tormin':"2024-10-20", 'tormax':"2024-10-30", 'magmin':2.0, 'magmax':3.0}
+    inputs={'n_sources':4,'latmin':39.1, 'latmax':39.2, 'lonmin':118.1, 'lonmax':118.2, 'depmin':1000, 'depmax':5000, 
+    'tormin':"20241020T000000", 'tormax':"20241020T000200", 'magmin':1.0, 'magmax':2.0}
 
     inv_filename = "COSEISMIQ_networks_inventory.xml"
     data_dir='/home/francesco/hengill'
@@ -84,10 +146,12 @@ if __name__ == "__main__":
     time_window = 20.
     highcut_freq=2
     source_type='dc'
-    data_id='event_single'
+    data_id='continuous'
     
     starttime='20241020T000000'
     endtime='20241130T000000'
+    starttime_noise="20241020T000000"
+    endtime_noise="20241020T000240"
 
     resampling_freq=50
 
@@ -95,5 +159,6 @@ if __name__ == "__main__":
 
     dataset=Synthetics_generator(data_dir, inv_folder, inv_filename, gfstore_dir, gf_store, data_id, noise_id, sds_root)
     dataset.generate_catalogue(inputs, catname)
-    dataset.generate_noise(starttime, endtime, time_window, resampling_freq, highcut_freq)
-    dataset.generate_waveforms(time_window, source_type)
+    #dataset.generate_noise(starttime, endtime, time_window, resampling_freq, highcut_freq)
+    #dataset.generate_event_waveforms(time_window, source_type)
+    dataset.generate_continuous_waveforms(starttime, endtime, starttime_noise, endtime_noise, time_window, resampling_freq, highcut_freq, data_id)
